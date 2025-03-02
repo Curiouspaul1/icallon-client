@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SocketIO Test Client</title>
+  </head>
+  <style>
+    * {
+      padding: 0;
+      margin: 0;
+      text-decoration: none;
+    }
+    body {
+      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+      background-color: #333;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      padding: 5%;
+      width: 100vw;
+      max-height: 100vh;
+      box-sizing: border-box;
+      gap: 20px;
+      color: #f4f4f4;
+    }
+    textarea {
+      width: 100%;
+      height: 300px;
+      max-height: 300px;
+      padding: 5px;
+      background-color: #333;
+    }
+    .left .right {
+      height: 100%;
+    }
+    .left {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    input,
+    select {
+      padding: 5px !important;
+    }
+    .actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    button {
+      padding: 10px;
+      cursor: pointer;
+    }
+    .logs {
+      max-height: 250px;
+      overflow-y: scroll;
+      white-space: pre-line;
+      font-size: 0.8rem;
+    }
+
+    label {
+      font-size: small;
+      font-weight: normal;
+    }
+  </style>
+  <body>
+    <div class="left">
+      <input
+        type="text"
+        placeholder="socketio url (default: localhost:3000)"
+        id="url"
+      />
+      <input type="text" placeholder="event name/id" id="room_id" />
+      <select id="transport_method">
+        <option value="both">transport method (default: both)</option>
+        <option value="both">Both</option>
+        <option value="polling">Polling</option>
+        <option value="websocket">Websocket</option>
+      </select>
+      <div class="options">
+        <input type="checkbox" id="encode" checked />
+        <label for="encode">Encode message as JSON</label>
+        <!-- <input type="checkbox" id="decode" checked />
+        <label for="decode">Parse response as JSON</label> -->
+      </div>
+      <textarea id="message" placeholder="message"></textarea>
+      <div class="actions">
+        <button type="button" id="connect">Try Connect</button>
+        <button type="button" id="send_message">Send Event</button>
+        <button type="button" id="clear_log">Clear Log</button>
+      </div>
+    </div>
+    <div class="right">
+      <textarea name="" id="response" placeholder="response"></textarea>
+      <div class="logs"></div>
+    </div>
+  </body>
+  <script
+    src="https://cdn.socket.io/4.5.0/socket.io.min.js"
+    integrity="sha384-7EyYLQZgWBi67fBtVxw60/OWl1kjsfrPFcaU0pp0nAh+i8FD068QogUvg85Ewy1k"
+    crossorigin="anonymous"
+  ></script>
+
+  <!-- <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-app.js"></script> -->
+
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.10.0/firebase-app.js'
+
+    // If you enabled Analytics in your project, add the Firebase SDK for Google Analytics
+    import { getAnalytics } from 'https://www.gstatic.com/firebasejs/10.10.0/firebase-analytics.js'
+
+    // Add Firebase products that you want to use
+    import { getAuth, signInWithEmailAndPassword } from 'https://www.gstatic.com/firebasejs/10.10.0/firebase-auth.js'
+    import { getFirestore } from 'https://www.gstatic.com/firebasejs/10.10.0/firebase-firestore.js'
+
+    var firebaseConfig = {
+      apiKey: "AIzaSyAFQqIotHI4TLiX1ia_cOzOO6pMERE47Bk",
+      authDomain: "handees.firebaseapp.com",
+      projectId: "handees",
+      storageBucket: "handees.appspot.com",
+      messagingSenderId: "497088547007",
+      appId: "1:497088547007:web:bff62cf4ac323885769e0a",
+      measurementId: "G-H10D7FPS2K"
+    }
+
+    initializeApp(firebaseConfig);
+
+    const url = document.getElementById("url");
+    const event_id = document.getElementById("room_id");
+    const transport_method = document.getElementById("transport_method");
+    const encodeAsJSON = document.getElementById("encode").value;
+    // const decodeAsJSON = document.getElementById("decode").value;
+    const message = document.getElementById("message");
+    const response = document.getElementById("response");
+    const textareas = document.querySelectorAll("textarea");
+    const logs = document.querySelector(".logs");
+    const connect = document.getElementById("connect");
+    const send_message = document.getElementById("send_message");
+    const clear_log = document.getElementById("clear_log");
+
+    const methods = {
+      both: ["polling", "websocket"],
+      polling: ["polling"],
+      websocket: ["websocket"],
+    };
+
+    let socket = null;
+    let status = "disconnected";
+    let token;
+
+    let login_obj = {
+      'email': '',
+      'password': '2020Paul#',
+      'returnSecureToken': true
+    };
+
+    async function login()
+    {
+      const auth = getAuth();
+      await signInWithEmailAndPassword(auth, login_obj.email, login_obj.password)
+      .then((userCredential) => {
+        // Signed in
+        token = userCredential._tokenResponse.idToken;
+        // ...
+      })
+      .catch((error) => {
+        const errorCode = error.code;
+        const errorMessage = error.message;
+      });
+    }
+
+    textareas.forEach((textarea) =>  {
+      textarea.addEventListener("keydown", (e) => {
+        if (e.keyCode === 9) {
+          e.preventDefault();
+          const end = textarea.selectionEnd;
+          textarea.value =
+            textarea.value.substring(0, textarea.selectionEnd) +
+            "\t" +
+            textarea.value.substring(textarea.selectionEnd);
+          textarea.selectionEnd = end + 1;
+        }
+      });
+    });
+
+    connect.addEventListener("click", async () => {
+      if (status !== "connected") {
+        try {
+            // fetch auth credentials
+            if (url.value.indexOf('/artisan')>-1)
+            {
+              login_obj.email = 'paulcurious7@gmail.com'
+            } else { login_obj.email = 'paulasalu7@gmail.com' }
+
+
+            if (status === "connecting") {
+              socket.disconnect();
+              connect.textContent = "Try Connect";
+              status = "disconnected";
+              return;
+            }
+            await login();
+            console.log(token);
+            socket = io(
+              !url.value || url.value == "" ? "http://localhost:3000" : url.value,
+              { 
+                transports: methods[transport_method.value],
+                auth: {
+                  access_token: token,
+                  initialCoordinates: {
+                    lat: 6.517374283413031,
+                    lon: 3.4002433507163845
+                  }
+                }
+              }
+          );
+
+          socket.connect();
+          status = "connecting";
+          connect.textContent = "Connecting... Click to stop";
+
+          socket.on("connect", () => {
+            status = "connected";
+            connect.textContent = "Disconnect";
+            logs.textContent = logs.textContent + "Socket connected!\n\n";
+            // socket.emit("join", room_id.value);
+            logs.textContent =
+              logs.textContent + "Joined room " + room_id.value + "\n\n";
+          });
+
+          socket.on("message", (data) => {
+            response.value = data;
+            logs.textContent = logs.textContent + "Data received!" + "\n\n";
+          });
+
+          socket.on("msg", (data) => {
+            response.value = data;
+            logs.textContent = logs.textContent + "Data received!" + "\n\n";
+          });
+
+          socket.on("disconnect", () => {
+            status = "disconnected";
+            connect.textContent = "Connect";
+            logs.textContent =
+              logs.textContent + "Socket disconnected!" + "\n\n";
+          });
+
+          socket.on(
+            'new_offer', (data) => {
+              console.log(data);
+            }
+          )
+
+          socket.on(
+            'booking_offer_accepted', (data) => {
+              console.log(data);
+            }
+          );
+
+          socket.on(
+            'new_card_added', (data) => {
+              console.log(data);
+            }
+          );
+
+          socket.on(
+            'offer_matched', (data) => {console.log(data)}
+          );
+
+          socket.on(
+            'artisan_arrived', (data) => {console.log(data)}
+          );
+
+          socket.on(
+            'artisan_location_update', (data) => {console.log(data)}
+          );
+
+          socket.on(
+            'nearby_counts', (data) => {console.log(data)}
+          );
+
+          socket.on(
+            'settlement_total', (data) => {console.log(data)}
+          );
+
+          socket.on(
+            'paystack_charge_error', (data) => {console.log(data)}
+          );
+
+          socket.on(
+            'approve_booking_details', (data) => {console.log(data)}
+          );
+
+          socket.on(
+            'paystack_authorization_routine', (data) => {console.log(data)}
+          );
+
+          socket.on(
+            'offer_closed', (data) => {console.log(data)}
+          );
+
+          socket.on(
+            'job_completed', (data) => {console.log(data)}
+          );
+
+          socket.on(
+            'offer_cancelled', (data) => {console.log(data)}
+          );
+
+          socket.on(
+            'job_details_confirmed', (data) => {console.log(data)}
+          );
+
+          socket.on(
+            'job_details_rejected', (data) => {console.log(data)}
+          );
+
+          socket.on(
+            'job_started', (data) => {console.log(data)}
+          );
+
+          socket.on(
+            'nearby_counts', (data) => {console.log(data)}
+          );
+
+          socket.on(
+            'error', (data) => {console.log(data)}
+          );
+
+          socket.on("connect_error", (err) => {
+            logs.textContent =
+              logs.textContent +
+              err +
+              " Check console for more info!" +
+              "\n\n";
+            console.log(err);
+          });
+        } catch (err) {
+          logs.textContent = logs.textContent +
+            "An error occurred! check console for more info.\n\n";
+          console.log(err);
+        }
+      } else {
+        socket.disconnect();
+        status = "disconnected";
+        logs.textContent = logs.textContent + "Socket disconnected!\n\n";
+      }
+    });
+
+    send_message.addEventListener("click", () => {
+      if (status !== "connected") {
+        logs.textContent =
+          logs.textContent + "Error!!! => No valid connection!\n\n";
+        return;
+      }
+
+      if (message.value && message.value !== "") {
+        socket.emit(
+          event_id.value,
+          encode ? JSON.stringify(message.value) : message.value
+        );
+      } else {
+        logs.textContent =
+          logs.textContent + "Error!!! => A message is requred!\n\n";
+      }
+    });
+
+    clear_log.addEventListener("click", () => {
+      logs.textContent = "";
+    });
+  </script>
+</html>
