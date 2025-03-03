@@ -9,9 +9,9 @@
 <body>
     <div class="container">
         <div id="username-screen">
-            <h1>Enter Username</h1>
-            <input type="text" id="username" placeholder="Username">
-            <button class="pure-button pure-button-primary" id="submit-username">Submit</button>
+            <h2>Choose your Player Name: </h2>
+            <input type="text" id="username" placeholder="Username"><br>
+            <button class="pure-button pure-button-primary" id="submit-username">Enter🔥</button>
         </div>
 
         <div id="game-selection-screen" style="display: none;">
@@ -28,7 +28,14 @@
 
         <div id="create-game-screen" style="display: none;">
             <h1>Game Code: <span id="display-game-code"></span></h1>
-            <button class="pure-button pure-button-primary" id="start-game-button">Start Game</button>
+            <button class="pure-button pure-button-primary" id="start-game-button" disabled="true">Start Game</button>
+        </div>
+
+        <div id="player-list" style="display: none;">
+            <h2>Players:</h2>
+            <table>
+              <tbody id="player-table-body"></tbody> 
+            </table>
         </div>
 
         <div id="game-arena" style="display: none;">
@@ -37,10 +44,22 @@
             <div id="turn-indicator"></div>
             <div class="letter-selection" id="letter-selection" style="display: none;"></div>
             <div class="input-fields" id="input-fields" style="display: none;">
-                <input type="text" id="name-input" placeholder="Name">
-                <input type="text" id="animal-input" placeholder="Animal">
-                <input type="text" id="place-input" placeholder="Place">
-                <input type="text" id="thing-input" placeholder="Thing/Object/Concept">
+                <div class="input-field-container" id="name-field">
+                    <input type="text" id="name-input" placeholder="Name">
+                </div>
+                <div class="input-field-container" id="animal-field" style="display: none;">
+                    <input type="text" id="animal-input" placeholder="Animal">
+                </div>
+                <div class="input-field-container" id="place-field" style="display: none;">
+                    <input type="text" id="place-input" placeholder="Place">
+                </div>
+                <div class="input-field-container" id="thing-field" style="display: none;">
+                    <input type="text" id="thing-input" placeholder="Thing/Object/Concept">
+                </div>
+                <div class="navigation-buttons">
+                    <button id="prev-field" disabled>&lt;</button>
+                    <button id="next-field">&gt;</button>
+                </div>
             </div>
             <div id="countdown"></div>
         </div>
@@ -49,6 +68,10 @@
             <h1>Leaderboard</h1>
             <div id="leaderboard-content"></div>
         </div>
+
+        <!-- <footer>
+            <a href="https://www.flaticon.com/free-icons/soccer-player" title="soccer player icons">Soccer player icons created by berkahicon - Flaticon</a> -->
+        <!-- </footer> -->
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
@@ -61,6 +84,10 @@
             var roundTimer;
             var letterTimer;
             var currentLetter;
+            let playerCount = 0;
+            let currentFieldIndex = 0;
+            const fields = ['name-field', 'animal-field', 'place-field', 'thing-field'];
+
 
             $('#submit-username').click(function() {
                 const username = $('#username').val().trim();
@@ -99,14 +126,28 @@
 
                             socket.on('player_joined', function(players) {
                                 updatePlayerAvatars(players);
+                                playerCount = players.length; // Update player count
+
+                                // Enable/disable start button based on player count
+                                if (playerCount >= 2) {
+                                $('#start-game-button').prop('disabled', false);
+                                } else {
+                                $('#start-game-button').prop('disabled', true);
+                                }
+
+                                // Update player table
+                                updatePlayerTable(players);
                             });
 
                             socket.on('player_left', function(players) {
                                 updatePlayerAvatars(players);
+                                updatePlayerTable(players);
                             });
 
                             socket.on('game_started', function(players) {
                                 $('#create-game-screen').hide();
+                                $('#join-game-screen').hide();
+                                $('#player-list').hide();
                                 $('#game-arena').show();
                                 updatePlayerAvatars(players);
                             });
@@ -118,7 +159,9 @@
                             });
 
                             socket.on('public_player_turn', function(data) {
+                                console.log(`To play now is ${data}`);
                                 if (data !== username) {
+                                    console.log(username);
                                     $('#turn-indicator').text(data + "'s turn");
                                 }
                             });
@@ -126,6 +169,8 @@
                             socket.on('letter_chosen', function(letter) {
                                 currentLetter = letter;
                                 $('#input-fields').show();
+                                currentFieldIndex = 0;
+                                showField(currentFieldIndex); // Show the first field
                                 $('#countdown').text('Round Time: 30');
                                 startRoundTimer();
                             });
@@ -152,6 +197,20 @@
             
             $('#username').on('input', function () {
                 $(this).removeClass('invalid');
+            });
+
+            $('#prev-field').click(function() {
+                if (currentFieldIndex > 0) {
+                    currentFieldIndex--;
+                    showField(currentFieldIndex);
+                }
+            });
+
+            $('#next-field').click(function() {
+                if (currentFieldIndex < fields.length - 1) {
+                    currentFieldIndex++;
+                    showField(currentFieldIndex);
+                }
             });
 
             function showLetterSelection(disabledLetters) {
@@ -195,6 +254,7 @@
                         $('#countdown').fadeIn(500, function() {
                             $(this).fadeOut(1500); // Fade out after 1.5 seconds
                         });
+                        $('#turn-indicator').text('');
 
                         // Emit "next_player_turn" event
                         socket.emit('next_player_turn', { room_id: gameCode }); 
@@ -226,6 +286,23 @@
                 }, 1000);
             }
 
+            function updatePlayerTable(players) {
+                $('#player-table-body').empty(); // Clear existing entries
+                players.forEach(player => {
+                const row = $('<tr><td>' + player + ' entered the room! 🔥' + '</td></tr>');
+                $('#player-table-body').append(row);
+                });
+            }
+
+            function showField(index) {
+                $('.input-field-container').hide();
+                $('#' + fields[index]).show();
+
+                // Enable/disable navigation buttons
+                $('#prev-field').prop('disabled', index === 0);
+                $('#next-field').prop('disabled', index === fields.length - 1);
+            }
+
             function sendPlayerAnswers() {
                 const answers = {
                     name: $('#name-input').val(),
@@ -240,7 +317,7 @@
                 $('#player-avatars').empty();
                 players.forEach(player => {
                     const avatar = $(`<div class="avatar">
-                        <img src="https://via.placeholder.com/60" alt="Avatar">
+                        <img src="avatar.png" alt="Avatar">
                         <span>${player}</span>
                     </div>`);
                     $('#player-avatars').append(avatar);
@@ -248,11 +325,13 @@
             }
             $('#create-game-button').click(function() {
                 if (socket) socket.emit('create');
+                $('#player-list').show();
             });
 
             $('#join-game-button').click(function() {
                 $('#game-selection-screen').hide();
                 $('#join-game-screen').show();
+                $('#player-list').show();
             });
 
             $('#submit-game-key').click(function() {

@@ -5,13 +5,17 @@ body {
     align-items: center;
     min-height: 100vh;
     background-color: #f4f4f4;
+    background-image: url("bg.jpg"); /* Or a URL */
+    background-size: cover; /* Or 'contain' */
+    background-repeat: no-repeat; /* Or 'repeat', 'repeat-x', 'repeat-y' */
+    background-position: center;
 }
 
 .container {
     width: 80%;
     max-width: 600px;
     padding: 20px;
-    background-color: white;
+    background-color: #DE6449;
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     text-align: center;
@@ -74,10 +78,16 @@ body {
     text-align: center;
 }
 
+h2 {
+    font-size: 1.5em;
+    margin-bottom: 30px;
+    color: #FFFFF2;
+}
+
 h1 {
     font-size: 2em;
     margin-bottom: 30px;
-    color: #333;
+    color: #FFFFF2;
 }
 
 input[type="text"] {
@@ -91,44 +101,44 @@ input[type="text"] {
     box-sizing: border-box;
     margin-bottom: 20px;
     transition: border-color 0.3s ease;
-  }
+}
 
-  input[type="text"]:focus {
+input[type="text"]:focus {
     outline: none;
     border-color: #007bff;
     /* Highlight on focus */
-  }
+}
 
-  .invalid {
+.invalid {
     border-color: #d9534f;
     /* Red border for invalid */
     animation: vibrate 0.1s 3;
     /* Vibrate animation */
-  }
+}
 
-  @keyframes vibrate {
+@keyframes vibrate {
     0% {
-      transform: translate(0);
+        transform: translate(0);
     }
 
     25% {
-      transform: translate(-2px, -2px);
+        transform: translate(-2px, -2px);
     }
 
     50% {
-      transform: translate(2px, 2px);
+        transform: translate(2px, 2px);
     }
 
     75% {
-      transform: translate(2px, -2px);
+        transform: translate(2px, -2px);
     }
 
     100% {
-      transform: translate(0);
+        transform: translate(0);
     }
-  }
+}
 
-  button {
+button {
     background-color: #007bff;
     color: white;
     padding: 12px 24px;
@@ -137,9 +147,62 @@ input[type="text"] {
     font-size: 1em;
     cursor: pointer;
     transition: background-color 0.3s ease;
-  }
+    transition: transform 0.1s ease;
+}
 
-  button:hover {
+button:hover {
     background-color: #0056b3;
     /* Darker shade on hover */
-  }
+}
+
+button:active {
+    transform: scale(0.95);  /* Move the button down slightly on click */
+}
+
+#player-list table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+    border-radius: 8px;
+    overflow: hidden; /* Hide overflow for rounded corners */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+    background-color: #FFFFF2; /* Dark background for the table */
+    color: #333; /* Light text color for contrast */
+}
+
+#player-list th {
+    background-color: #444; /* Slightly darker background for header */
+    color: #eee; /* Light text color for header */
+}
+
+#player-list td {
+    border-bottom: 1px solid #555; /* Darker border between rows */
+}
+
+#player-list tr { /* Select all rows except the first one */
+    margin-bottom: 10px; /* Add 10px padding to the top */
+}
+
+#player-list th, #player-list td {
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 1px solid #eee; /* Light border between rows */
+}
+
+#player-list th {
+    background-color: #f8f8f8; /* Light background for header */
+    font-weight: 600;
+}
+
+#player-list tr:last-child td {
+    border-bottom: none; /* Remove border from last row */
+}
+
+/* Optional: Add hover effect to rows */
+#player-list tr:hover {
+    background-color: #f0f0f0;
+}
+
+#player-list tr:hover {
+    background-color: #444; 
+}
