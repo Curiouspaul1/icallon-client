@@ -69,6 +69,11 @@
             <div id="leaderboard-content"></div>
         </div>
 
+        <div id="results-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); z-index: 1000; display: flex; justify-content: center; align-items: center; flex-direction: column; color: white;">
+            <div class="loader"></div> 
+            <p>Calculating results...</p>
+        </div>
+
         <!-- <footer>
             <a href="https://www.flaticon.com/free-icons/soccer-player" title="soccer player icons">Soccer player icons created by berkahicon - Flaticon</a> -->
         <!-- </footer> -->
@@ -87,6 +92,7 @@
             let playerCount = 0;
             let currentFieldIndex = 0;
             const fields = ['name-field', 'animal-field', 'place-field', 'thing-field'];
+            hideResultsOverlay();
 
 
             $('#submit-username').click(function() {
@@ -106,90 +112,111 @@
                     contentType: 'application/json',
                     success: function(response, status, xhr) {
                         // console.log(xhr.status)
-                        if (xhr.status === 204) { // Assuming your server returns a status of "success"
-                            // Only connect Socket.IO after successful HTTP session setup
-                            socket = io('http://127.0.0.1:5000', {
-                                withCredentials: true,
-                                transports: ['websocket', 'polling']
-                            });
+                        // Assuming your server returns a status of "success"
+                        // Only connect Socket.IO after successful HTTP session setup
+                        socket = io('http://127.0.0.1:5000', {
+                            withCredentials: true,
+                            transports: ['websocket', 'polling']
+                        });
 
-                            $('#username-screen').hide();
-                            $('#game-selection-screen').show();
+                        $('#username-screen').hide();
+                        $('#game-selection-screen').show();
 
-                            // Socket.IO event handlers (moved here)
-                            socket.on('game_code', function(code) {
-                                gameCode = code;
-                                $('#display-game-code').text(code);
-                                $('#game-selection-screen').hide();
-                                $('#create-game-screen').show();
-                            });
+                        // Socket.IO event handlers (moved here)
+                        socket.on('game_code', function(code) {
+                            gameCode = code;
+                            $('#display-game-code').text(code);
+                            $('#game-selection-screen').hide();
+                            $('#create-game-screen').show();
+                        });
 
-                            socket.on('player_joined', function(players) {
-                                updatePlayerAvatars(players);
-                                playerCount = players.length; // Update player count
+                        socket.on('player_joined', function(players) {
+                            updatePlayerAvatars(players);
+                            playerCount = players.length; // Update player count
 
-                                // Enable/disable start button based on player count
-                                if (playerCount >= 2) {
-                                $('#start-game-button').prop('disabled', false);
-                                } else {
-                                $('#start-game-button').prop('disabled', true);
+                            // Enable/disable start button based on player count
+                            if (playerCount >= 2) {
+                            $('#start-game-button').prop('disabled', false);
+                            } else {
+                            $('#start-game-button').prop('disabled', true);
+                            }
+
+                            // Update player table
+                            updatePlayerTable(players);
+                        });
+
+                        socket.on('player_left', function(players) {
+                            updatePlayerAvatars(players);
+                            updatePlayerTable(players);
+                        });
+
+                        socket.on('game_started', function(players) {
+                            $('#create-game-screen').hide();
+                            $('#join-game-screen').hide();
+                            $('#player-list').hide();
+                            $('#game-arena').show();
+                            updatePlayerAvatars(players);
+                        });
+
+                        socket.on('private_player_turn', function(data) {
+                            $('#turn-indicator').text("Your Turn! Pick a Letter");
+                            console.log('TURN CALLED');
+                            showLetterSelection(data.disabledLetters);
+                        });
+
+                        socket.on('public_player_turn', function(data) {
+                            console.log(`To play now is ${data} current player is ${username}`);
+                            if (data !== username) {
+                                console.log(username);
+                                $('#turn-indicator').text(data + "'s turn");
+                            }
+                        });
+
+                        socket.on('letter_chosen', function(letter) {
+                            currentLetter = letter;
+                            $('#input-fields').show();
+                            currentFieldIndex = 0;
+                            showField(currentFieldIndex); // Show the first field
+                            $('#countdown').text('Round Time: 30');
+                            startRoundTimer();
+                        });
+
+                        socket.on('round_result', function(scores) {
+                            hideResultsOverlay();
+                            $('#leaderboard-content').empty();
+                            for (const player in scores) {
+                                $('#leaderboard-content').append(`<p>${player}: ${scores[player]}</p>`);
+                            }
+                            $('#leaderboard').show();
+                            setTimeout(() => $('#leaderboard').fadeOut(
+                                500,
+                                function () {
+                                    let countdown = 3;
+                                    $('#countdown').text('Next round in ' + countdown);
+                                    $('#countdown').fadeIn(500);
+
+                                    let countdownInterval = setInterval(function() {
+                                        countdown--;
+                                        $('#countdown').text('Next round in ' + countdown);
+                                        if (countdown === 0) {
+                                            clearInterval(countdownInterval);
+                                            $('#countdown').fadeOut(500, function() {
+                                                socket.emit('next_player_turn', { room_id: gameCode });
+                                            });
+                                        }
+                                    }, 1000);
                                 }
+                            ), 5000)
+                        });
 
-                                // Update player table
-                                updatePlayerTable(players);
-                            });
-
-                            socket.on('player_left', function(players) {
-                                updatePlayerAvatars(players);
-                                updatePlayerTable(players);
-                            });
-
-                            socket.on('game_started', function(players) {
-                                $('#create-game-screen').hide();
-                                $('#join-game-screen').hide();
-                                $('#player-list').hide();
-                                $('#game-arena').show();
-                                updatePlayerAvatars(players);
-                            });
-
-                            socket.on('private_player_turn', function(data) {
-                                $('#turn-indicator').text("Your Turn! Pick a Letter");
-                                console.log('TURN CALLED');
-                                showLetterSelection(data.disabledLetters);
-                            });
-
-                            socket.on('public_player_turn', function(data) {
-                                console.log(`To play now is ${data}`);
-                                if (data !== username) {
-                                    console.log(username);
-                                    $('#turn-indicator').text(data + "'s turn");
-                                }
-                            });
-
-                            socket.on('letter_chosen', function(letter) {
-                                currentLetter = letter;
-                                $('#input-fields').show();
-                                currentFieldIndex = 0;
-                                showField(currentFieldIndex); // Show the first field
-                                $('#countdown').text('Round Time: 30');
-                                startRoundTimer();
-                            });
-
-                            socket.on('round_result', function(scores) {
-                                $('#leaderboard-content').empty();
-                                for (const player in scores) {
-                                    $('#leaderboard-content').append(`<p>${player}: ${scores[player]}</p>`);
-                                }
-                                $('#leaderboard').show();
-                                setTimeout(() => $('#leaderboard').hide(), 5000)
-                            });
-
-                        } else {
-                            alert("Failed to set username.");
-                        }
                     },
-                    error: function() {
-                        alert("Error connecting to server.");
+                    error: function(xhr, textStatus, errorThrown) {
+                        if (xhr.status === 400) {
+                            let errorData = JSON.parse(xhr.responseText);
+                            // console.log(errorData);
+                            alert(`Soryeem: ${errorData.message}`);
+                        }
+                        else alert("OMo some error occurred ni sha!💀")
                     }
                 });
 
@@ -212,6 +239,14 @@
                     showField(currentFieldIndex);
                 }
             });
+
+            function showResultsOverlay() {
+                $('#results-overlay').fadeIn();
+            }
+
+            function hideResultsOverlay() {
+                $('#results-overlay').fadeOut();
+            }
 
             function showLetterSelection(disabledLetters) {
                 $('#letter-selection').empty();
@@ -252,7 +287,9 @@
                         // Show "Passed" message
                         $('#countdown').text('Passed');
                         $('#countdown').fadeIn(500, function() {
-                            $(this).fadeOut(1500); // Fade out after 1.5 seconds
+                            $(this).fadeOut(1500, function() {
+                                $(this).show();
+                            }) // Fade out after 1.5 seconds
                         });
                         $('#turn-indicator').text('');
 
@@ -311,6 +348,7 @@
                     thing: $('#thing-input').val()
                 };
                 socket.emit('player_answer', { answers: answers, room_id: gameCode });
+                showResultsOverlay();
             }
 
             function updatePlayerAvatars(players) {
