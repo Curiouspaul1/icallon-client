@@ -249,6 +249,7 @@
                         $('#countdown').fadeIn(500, function() {
                             $(this).fadeOut(1500, function() {
                                 $(this).show();
+                                $(this).text('');
                             }) // Fade out after 1.5 seconds
                         });
                         $('#turn-indicator').text('');
@@ -315,8 +316,8 @@
                 $('#player-avatars').empty();
                 players.forEach(player => {
                     const avatar = $(`<div class="avatar">
-                        <img src="avatar.png" alt="Avatar">
-                        <span>${player}</span>
+                        <div class="player-avatar"><img src="avatar.png" alt="Avatar"></div>
+                        <div class="player-name"><span>${player}</span></div>
                     </div>`);
                     $('#player-avatars').append(avatar);
                 });
@@ -388,6 +389,12 @@
 
                 socket.on('private_player_turn', function(data) {
                     $('#turn-indicator').text("Your Turn! Pick a Letter");
+                    setTimeout(
+                        ()=>{
+                            $('#turn-indicator').fadeOut(500);
+                        },
+                        2000
+                    );
                     console.log('TURN CALLED');
                     showLetterSelection(data.disabledLetters);
                 });
@@ -397,6 +404,12 @@
                     if (data !== username) {
                         console.log(username);
                         $('#turn-indicator').text(data + "'s turn");
+                        setTimeout(
+                            ()=>{
+                                $('#turn-indicator').fadeOut(500);
+                            },
+                            2000
+                        );
                     }
                 });
 
@@ -420,7 +433,7 @@
                         const item = $(
                             '<div class="leaderboard-item">' +
                             '<div class="leaderboard-rank">' + rank + '</div>' +
-                            '<div class="leaderboard-avatar"><img src="avatar" alt="Avatar"></div>' + // Replace with actual avatar URLs
+                            '<div class="leaderboard-avatar"><img src="avatar.png" alt="Avatar"></div>' + // Replace with actual avatar URLs
                             '<div class="leaderboard-details">' +
                             '<div class="leaderboard-name">' + player + '</div>' +
                             '<div class="leaderboard-score">' + scores[player] + ' QP</div>' +
@@ -446,6 +459,7 @@
                                     clearInterval(countdownInterval);
                                     $('#countdown').fadeOut(500, function() {
                                         $(this).show();
+                                        $(this).text('');
                                     });
                                 }
                             }, 1000);

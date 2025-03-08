@@ -29,10 +29,6 @@ body {
 }
 
 .avatar {
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    background-color: #ddd;
     margin: 10px;
     display: flex;
     flex-direction: column;
@@ -40,9 +36,23 @@ body {
     justify-content: center;
 }
 
+.avatar .player-avatar {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background-color: #ddd;
+}
+
+.avatar-container .avatar .player-name {
+    margin-top: 5px;
+    text-align: center;
+    font-size: 1.05em;
+    color: #ddd;
+}
+
 .avatar img {
     width: 100%;
-    height: 100%;
+    height: auto;
     border-radius: 50%;
     object-fit: cover;
 }
@@ -281,4 +291,22 @@ button:active {
 @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
+}
+
+#countdown {
+    background-color: #f0f0f0; /* Light background color */
+    border: 1px solid #ddd; /* Subtle border */
+    padding: 10px 20px;
+    border-radius: 5px;
+    font-size: 1.2em;
+    font-weight: bold;
+    color: #333; /* Dark text color */
+    text-align: center;
+    margin: 20px auto; /* Center horizontally */
+    max-width: 200px; /* Adjust as needed */
+    transition: opacity 0.5s ease; /* Add a smooth fade-in/out effect */
+}
+
+#turn-indicator {
+    margin-top: 10px;
 }
