@@ -61,7 +61,7 @@
                     <button id="next-field">&gt;</button>
                 </div>
             </div>
-            <div id="countdown"></div>
+            <div id="countdown" class="has-text"></div>
         </div>
 
         <div class="leaderboard" id="leaderboard" style="display: none;">
@@ -237,19 +237,21 @@
             function startLetterTimer() {
                 let timeLeft = 10;
                 $('#countdown').text('Select a letter: ' + timeLeft);
+                $('#countdown').removeClass('has-no-text');
+                $('#countdown').addClass('has-text');
                 letterTimer = setInterval(function() {
                     timeLeft--;
                     if (timeLeft < 0) {
                         clearInterval(letterTimer);
                         $('#letter-selection').hide();
-                        $('#countdown').text('');
-
                         // Show "Passed" message
                         $('#countdown').text('Passed');
                         $('#countdown').fadeIn(500, function() {
                             $(this).fadeOut(1500, function() {
                                 $(this).show();
                                 $(this).text('');
+                                $('#countdown').removeClass('has-text');
+                                $(this).addClass('has-no-text');
                             }) // Fade out after 1.5 seconds
                         });
                         $('#turn-indicator').text('');
@@ -270,7 +272,7 @@
             }
 
             function startRoundTimer() {
-                let timeLeft = 30;
+                let timeLeft = 5;
                 roundTimer = setInterval(function() {
                     timeLeft--;
                     if (timeLeft < 0) {
@@ -308,7 +310,13 @@
                     place: $('#place-input').val(),
                     thing: $('#thing-input').val()
                 };
-                socket.emit('player_answer', { answers: answers, room_id: gameCode });
+                let data = { 
+                    answers: answers,
+                    room_id: gameCode,
+                    letter: currentLetter
+                }
+                console.log(data);
+                socket.emit('player_answer', data);
                 showResultsOverlay();
             }
 
@@ -391,7 +399,13 @@
                     $('#turn-indicator').text("Your Turn! Pick a Letter");
                     setTimeout(
                         ()=>{
-                            $('#turn-indicator').fadeOut(500);
+                            $('#turn-indicator').fadeOut(
+                                500,
+                                () => {
+                                    $('#turn-indicator').text('');
+                                    $('#turn-indicator').show();
+                                }
+                            );
                         },
                         2000
                     );
@@ -406,7 +420,13 @@
                         $('#turn-indicator').text(data + "'s turn");
                         setTimeout(
                             ()=>{
-                                $('#turn-indicator').fadeOut(500);
+                                $('#turn-indicator').fadeOut(
+                                    500,
+                                    () => {
+                                        $('#turn-indicator').text('');
+                                        $('#turn-indicator').show();
+                                    }
+                                );
                             },
                             2000
                         );
@@ -415,6 +435,13 @@
 
                 socket.on('letter_chosen', function(letter) {
                     currentLetter = letter;
+                    $('#turn-indicator').text(`🔥Letter ${letter} selected🔥`)
+                    $('#turn-indicator').fadeIn(500, ()=>{
+                        $(this).fadeOut(500, ()=>{
+                            $(this).text('');
+                            $(this).show();
+                        })
+                    })
                     $('#input-fields').show();
                     currentFieldIndex = 0;
                     showField(currentFieldIndex); // Show the first field
@@ -450,6 +477,8 @@
                         function () {
                             let countdown = 3;
                             $('#countdown').text('Next round in ' + countdown);
+                            $('#countdown').removeClass('has-no-text');
+                            $('#countdown').addClass('has-text');
                             $('#countdown').fadeIn(500);
 
                             let countdownInterval = setInterval(function() {
@@ -460,6 +489,8 @@
                                     $('#countdown').fadeOut(500, function() {
                                         $(this).show();
                                         $(this).text('');
+                                        $('#countdown').removeClass('has-text');
+                                        $(this).addClass('has-no-text');
                                     });
                                 }
                             }, 1000);

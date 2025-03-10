@@ -1,5 +1,15 @@
+@import url('https://fonts.googleapis.com/css2?family=Nosifer&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400..900&display=swap');
+
+:root {
+    --weight: 200;
+}
+
 body {
-    font-family: sans-serif;
+    font-family: "Orbitron", sans-serif;
+    font-optical-sizing: auto;
+    font-weight: var(--weight);
+    font-style: normal;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -294,8 +304,6 @@ button:active {
 }
 
 #countdown {
-    background-color: #f0f0f0; /* Light background color */
-    border: 1px solid #ddd; /* Subtle border */
     padding: 10px 20px;
     border-radius: 5px;
     font-size: 1.2em;
@@ -305,8 +313,26 @@ button:active {
     margin: 20px auto; /* Center horizontally */
     max-width: 200px; /* Adjust as needed */
     transition: opacity 0.5s ease; /* Add a smooth fade-in/out effect */
+    transition: background-color 0.5s ease;
+}
+
+.has-text { /* Style the element when it has text */
+    border: 1px solid #ddd;
+    background-color: #f0f0f0; /* Light background color */
+}
+
+.has-no-text {
+    background-color: transparent;
+    border: none;
 }
 
 #turn-indicator {
     margin-top: 10px;
+    color: #ddd;
+}
+
+#game-arena h1 {
+    font-family: "Nosifer", sans-serif;
+    font-weight: 400;
+    font-style: normal;
 }
