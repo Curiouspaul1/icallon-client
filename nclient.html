@@ -1,13 +1,33 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Multiplayer Word Game</title>
+    <title>Icallon🗣️ | Multiplayer Word Game</title>
     <link rel="stylesheet" href="https://unpkg.com/purecss@1.0.0/build/pure-min.css">
     <link rel="stylesheet" href="main.css">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 </head>
 <body>
     <div class="container">
+        <div id="help-icon">
+            <img src="help-icon.svg" alt="Help"> 
+        </div>
+        <div id="help-overlay" style="display: none;">
+            <div id="help-content" style="background-color: white;">
+                <div id="help-header" style="display: flex; justify-content: space-between; align-items: center;">
+                    <div id="sound-toggle">
+                        <img src="sound-on.svg" alt="Sound On" id="sound-icon">
+                    </div>
+                    <div id="help-close">
+                        <img src="close-icon.svg" alt="Close">
+                    </div>
+                </div>
+                <div id="help-info" style="margin-top: 20px;">
+                    <p>Game by Curiouspaul.</p>
+                    <p>Credits: Freepik.com, ionic.io, and me💅</p>
+                    <p>More info: paulcurious7@gmail.com</p>
+                </div>
+            </div>
+        </div>
         <div id="username-screen">
             <h2>Choose your Player Name: </h2>
             <input type="text" id="username" placeholder="Username"><br>
@@ -73,6 +93,10 @@
             <div class="loader"></div> 
             <p>Calculating results...</p>
         </div>
+        <audio id="backgroundMusic" loop>
+            <source src="sounds/theme1.mp3" type="audio/mpeg">
+            Your browser does not support the audio element.
+        </audio>
 
         <!-- <footer>
             <a href="https://www.flaticon.com/free-icons/soccer-player" title="soccer player icons">Soccer player icons created by berkahicon - Flaticon</a> -->
@@ -92,11 +116,12 @@
             var currentLetter;
             let playerCount = 0;
             let currentFieldIndex = 0;
+            // let serverURL = 'https://icallon-262474602690.us-central1.run.app';
+            let serverURL = 'http://127.0.0.1:5000';
             const fields = ['name-field', 'animal-field', 'place-field', 'thing-field'];
             hideResultsOverlay();
 
             storedUsername = sessionStorage.getItem('username');
-            console.log(storedUsername);
             if (storedUsername) {
                 // If username is remembered, directly show game options
                 $('#username-screen').hide();
@@ -109,12 +134,11 @@
                     xhrFields: {
                         withCredentials: true
                     },
-                    url: 'http://127.0.0.1:5000/session',
+                    url: `${serverURL}/session`,
                     data: JSON.stringify({ session: username }),
                     contentType: 'application/json',
                     success: function(response, status, xhr) {
                         sessionStorage.setItem('username', username);
-                        console.log(sessionStorage.getItem('username'));
                         // console.log(xhr.status)
                         // Assuming your server returns a status of "success"
                         // Only connect Socket.IO after successful HTTP session setup
@@ -151,12 +175,11 @@
                     xhrFields: {
                         withCredentials: true
                     },
-                    url: 'http://127.0.0.1:5000/session',
+                    url: `${serverURL}/session`,
                     data: JSON.stringify({ session: username }),
                     contentType: 'application/json',
                     success: function(response, status, xhr) {
                         sessionStorage.setItem('username', username);
-                        console.log(sessionStorage.getItem('username'));
                         // console.log(xhr.status)
                         // Assuming your server returns a status of "success"
                         // Only connect Socket.IO after successful HTTP session setup
@@ -186,6 +209,37 @@
                 }
             });
 
+            const backgroundMusic = document.getElementById('backgroundMusic');
+            backgroundMusic.volume = 0.2;
+
+            $('#help-icon').click(function() {
+                $('#help-overlay').fadeIn();
+            });
+
+            $('#help-close').click(function() {
+                $('#help-overlay').fadeOut();
+            });
+
+            $('#help-overlay').click(function(event) {
+                if (event.target === this) { 
+                    $('#help-overlay').fadeOut();
+                }
+            });
+            
+
+            $('#sound-toggle').click(function() {
+                const soundIcon = $('#sound-icon');
+                const isMuted = backgroundMusic.muted;
+
+                if (isMuted) {
+                    backgroundMusic.muted = false;
+                    soundIcon.attr('src', 'sound-on.svg').attr('alt', 'Sound On');
+                } else {
+                    backgroundMusic.muted = true;
+                    soundIcon.attr('src', 'sound-off.svg').attr('alt', 'Sound Off');
+                }
+            });
+
             $('#prev-field').click(function() {
                 if (currentFieldIndex > 0) {
                     currentFieldIndex--;
@@ -199,6 +253,14 @@
                     showField(currentFieldIndex);
                 }
             });
+
+            function playBackgroundMusic() {
+                backgroundMusic.play();
+            }
+
+            function pauseBackgroundMusic() {
+                backgroundMusic.pause();
+            }
 
             function showResultsOverlay() {
                 $('#results-overlay').fadeIn();
@@ -315,7 +377,6 @@
                     room_id: gameCode,
                     letter: currentLetter
                 }
-                console.log(data);
                 socket.emit('player_answer', data);
                 showResultsOverlay();
             }
@@ -351,7 +412,7 @@
             });
 
             function setUp() {
-                socket = io('http://127.0.0.1:5000', {
+                socket = io(serverURL, {
                     withCredentials: true,
                     transports: ['websocket', 'polling']
                 });
@@ -393,6 +454,7 @@
                     $('#player-list').hide();
                     $('#game-arena').show();
                     updatePlayerAvatars(players);
+                    playBackgroundMusic();
                 });
 
                 socket.on('private_player_turn', function(data) {
@@ -409,14 +471,11 @@
                         },
                         2000
                     );
-                    console.log('TURN CALLED');
                     showLetterSelection(data.disabledLetters);
                 });
 
                 socket.on('public_player_turn', function(data) {
-                    console.log(`To play now is ${data} current player is ${username}`);
                     if (data !== username) {
-                        console.log(username);
                         $('#turn-indicator').text(data + "'s turn");
                         setTimeout(
                             ()=>{
@@ -436,12 +495,18 @@
                 socket.on('letter_chosen', function(letter) {
                     currentLetter = letter;
                     $('#turn-indicator').text(`🔥Letter ${letter} selected🔥`)
-                    $('#turn-indicator').fadeIn(500, ()=>{
-                        $(this).fadeOut(500, ()=>{
-                            $(this).text('');
-                            $(this).show();
-                        })
-                    })
+                    $('#turn-indicator').fadeIn(500, function () {
+                        setTimeout(
+                            ()=>{
+                                $(this).fadeOut(500, ()=>{
+                                    $(this).text('');
+                                    $(this).show();
+                                })
+                            },
+                            2000
+                        )
+                        
+                    });
                     $('#input-fields').show();
                     currentFieldIndex = 0;
                     showField(currentFieldIndex); // Show the first field
@@ -472,6 +537,7 @@
                         rank++;
                     }
                     $('#leaderboard').show();
+                    pauseBackgroundMusic();
                     setTimeout(() => $('#leaderboard').fadeOut(
                         500,
                         function () {
